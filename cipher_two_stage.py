@@ -1,9 +1,3 @@
-#!/usr/bin/env python3
-# cipher_two_stage.py
-# Baseline: Hill (2x2) -> Vigenere
-# Includes: encryption, decryption, frequency analysis, known-plaintext attack,
-# experiment harness with banners for every stage.
-
 import itertools
 import math
 import time
@@ -119,28 +113,6 @@ def english_score(text: str) -> float:
         s -= ((c[k]/N*100 - v)**2)/v
     return s
 
-def break_vigenere_by_frequency(cipher: str, max_key_len=14):
-    cipher = sanitize(cipher)
-    best = (None, -1e9, "")
-    for key_len in range(1, max_key_len+1):
-        key_chars = []
-        for i in range(key_len):
-            seq = [cipher[j] for j in range(i, len(cipher), key_len)]
-            best_shift, best_score = 0, -1e9
-            for shift in range(26):
-                cand = [I2A[(A2I[ch] - shift) % 26] for ch in seq]
-                score = english_score("".join(cand))
-                if score > best_score:
-                    best_score = score
-                    best_shift = shift
-            key_chars.append(I2A[best_shift])
-        key = "".join(key_chars)
-        plain_guess = vigenere_decrypt(cipher, key)
-        s = english_score(plain_guess)
-        if s > best[1]:
-            best = (key, s, plain_guess)
-    return best
-
 # ---------------------
 # Known-plaintext attack
 # ---------------------
@@ -191,25 +163,40 @@ def experiment_two_stage(trials=3,text_len=300,known_len=30,max_matrices=120000)
 # ---------------------
 if __name__=="__main__":
     banner("TWO-STAGE CIPHER DEMO (HILL -> VIGENERE)")
-    plain="This project demonstrates the Hill then Vigenere two-stage cipher."
+    plain=input("Enter plaintext to encrypt (you may include spaces): ")
     plain=sanitize(plain)
     H=[3,3,2,5];K="LONGSECRETK"
+
     banner("ENCRYPTION")
+    start_enc=time.time()
     c=encrypt(plain,H,K)
-    print("Plain:",plain[:80],"...")
-    print("Cipher:",c[:80],"...")
+    end_enc=time.time()
+    print("Plain:",plain)
+    print("Cipher:",c)
+    print(f"Encryption time: {(end_enc-start_enc)*1000:.2f} ms")
 
     banner("DECRYPTION")
+    start_dec=time.time()
     d=decrypt(c,H,K)
-    print("Decrypted equals plain?",d==plain)
+    end_dec=time.time()
+    print("Decrypted:",d)
+    print("Matches sanitized plaintext?",d==plain)
+    print(f"Decryption time: {(end_dec-start_dec)*1000:.2f} ms")
 
     banner("FREQUENCY ANALYSIS")
     freq=Counter(c)
     print("Top cipher letters:",freq.most_common(8))
 
-    banner("VIGENERE FREQUENCY BREAKER (ORACLE)")
-    hill_out=hill_encrypt(plain,H)
-    key,score,pt=break_vigenere_by_frequency(hill_out,14)
-    print("Recovered key:",key,"| Score:",round(score,2))
-
     experiment_two_stage()
+
+    # ---------------------------
+    # Time Complexity & Efficiency Comparison
+    # ---------------------------
+    banner("TIME COMPLEXITY & EFFICIENCY ANALYSIS")
+    print("Encryption Complexity:  O(n)  — linear in message length (Hill + Vigenere).")
+    print("Decryption Complexity:  O(n)  — same as encryption, sequential linear passes.")
+    print("Attack Complexity:      O(26^4 * n)  — brute force over invertible 2x2 matrices (~456k).")
+    print("Comparison with Shift Cipher:")
+    print("  - Shift cipher: O(n) but trivial keyspace (26 possibilities).")
+    print("  - This two-stage cipher: O(2n) due to two layers, far stronger keyspace and diffusion.")
+    print("  - Trade-off: Slightly slower, exponentially more secure.\n")
