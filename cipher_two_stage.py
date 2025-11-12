@@ -138,7 +138,9 @@ def known_plaintext_attack(full_c,kp,kc,vlen=10,max_m=60000):
         except:continue
         sc=english_score(p)
         if sc>best[0]: best=(sc,M,vkey,p)
-        if count%20000==0: print(f"[two-stage] Checked {count} matrices; best score {sc:.2f}")
+        if count%20000==0:
+            comment = "← still random noise (attack failing)" if sc < 40 else "← approaching readable English!"
+            print(f"[two-stage] Checked {count:>6} matrices; best score {sc:>7.2f} {comment}")
     return best,count
 
 # ---------------------
@@ -155,7 +157,8 @@ def experiment_two_stage(trials=3,text_len=300,known_len=30,max_matrices=120000)
         (sc,M,V,p),tried=known_plaintext_attack(c,kp,kc,len(K),max_matrices)
         t1=time.time()
         ok=p.startswith(plain[:40])
-        print(f"[Trial {t+1}] Time {t1-t0:.2f}s | Tried {tried} | Success={ok}")
+        verdict = "Attack failed — ciphertext remains random." if not ok else "Attack succeeded — partial plaintext recovered!"
+        print(f"[Trial {t+1}] Time {t1-t0:.2f}s | Tried {tried} | Success={ok} → {verdict}")
     banner("ATTACK END")
 
 # ---------------------
